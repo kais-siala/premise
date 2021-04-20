@@ -5,7 +5,6 @@ import pytest
 import wurst
 import brightway2 as bw
 from pathlib import Path
-import os
 
 REGION_MAPPING_FILEPATH = (DATA_DIR / "regionmappingH12.csv")
 
@@ -107,8 +106,7 @@ def setup_db():
                  }
             ],
             source_db="ecoinvent 3.7 cutoff",
-            source_version="3.7",
-            key=os.environ['IAM_FILES_KEY']
+            source_version="3.7"
             )
 
 def setup_db_with_custom_fleet_file():
@@ -122,7 +120,7 @@ def setup_db_with_custom_fleet_file():
                  }
             ],
             source_db="ecoinvent 3.7 cutoff",
-            source_version="3.7",
+            source_version="3.7"
     )
 
 @pytest.mark.ecoinvent

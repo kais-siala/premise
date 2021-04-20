@@ -2,9 +2,6 @@ from . import DATA_DIR
 import pandas as pd
 from pathlib import Path
 import csv
-from cryptography.fernet import Fernet
-from io import StringIO
-
 
 IAM_ELEC_MARKETS = DATA_DIR / "electricity" / "electricity_markets.csv"
 IAM_ELEC_EFFICIENCIES = DATA_DIR / "electricity" / "electricity_efficiencies.csv"
@@ -22,12 +19,11 @@ class IAMDataCollection:
 
     """
 
-    def __init__(self, model, pathway, year, filepath_iam_files, key):
+    def __init__(self, model, pathway, year, filepath_iam_files):
         self.model = model
         self.pathway = pathway
         self.year = year
         self.filepath_iam_files = filepath_iam_files
-        self.key = key
         self.data = self.get_iam_data()
         self.regions = [r for r in self.data.region.values]
 
@@ -47,7 +43,6 @@ class IAMDataCollection:
         self.electricity_emissions = self.get_gains_electricity_emissions()
         self.cement_emissions = self.get_gains_cement_emissions()
         self.steel_emissions = self.get_gains_steel_emissions()
-
 
     def get_iam_electricity_emission_labels(self):
         """
@@ -117,50 +112,21 @@ class IAMDataCollection:
 
         """
 
-        file_ext = self.model + "_" + self.pathway + ".csv"
-        filepath = Path(self.filepath_iam_files) / file_ext
+        file_ext = {"remind": self.model + "_" + self.pathway + ".mif",
+                    "image": self.model + "_" + self.pathway + ".xlsx"}
 
-
-        if self.key is None:
-            # Uses a non-encrypted file
-            try:
-                with open(filepath, "rb") as file:
-                    # read the encrypted data
-                    encrypted_data = file.read()
-            except FileNotFoundError:
-                file_ext = self.model + "_" + self.pathway + ".mif"
-                filepath = Path(self.filepath_iam_files) / file_ext
-                with open(filepath, "rb") as file:
-                    # read the encrypted data
-                    encrypted_data = file.read()
-
-            # create a temp csv-like file to pass to pandas.read_csv()
-            DATA = StringIO(str(encrypted_data, 'latin-1'))
-
-        else:
-            # Uses an encrypted file
-            f = Fernet(self.key)
-            with open(filepath, "rb") as file:
-                # read the encrypted data
-                encrypted_data = file.read()
-
-            # decrypt data
-            decrypted_data = f.decrypt(encrypted_data)
-            DATA = StringIO(str(decrypted_data, 'latin-1'))
+        filepath = Path(self.filepath_iam_files) / file_ext[self.model]
 
         if self.model == "remind":
             df = pd.read_csv(
-                DATA, sep=";", index_col=["Region", "Variable", "Unit"], encoding="latin-1"
+                filepath, sep=";", index_col=["Region", "Variable", "Unit"]
             ).drop(columns=["Model", "Scenario"])
 
             # Filter the dataframe
             list_var = ("SE", "Tech", "FE", "Production", "Emi|CCO2", "Emi|CO2")
 
         elif self.model == "image":
-
-            df = pd.read_csv(DATA, index_col=[2, 3, 4],
-                             encoding="latin-1",
-                             sep=";").drop(
+            df = pd.read_excel(filepath, index_col=[2, 3, 4]).drop(
                 columns=["Model", "Scenario"]
             )
 
